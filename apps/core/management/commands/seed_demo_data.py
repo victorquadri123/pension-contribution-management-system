@@ -17,9 +17,10 @@ class Command(BaseCommand):
 
         # 1. Superuser / Admin
         for admin_email, admin_fname, admin_pwd in [
-            ("victorayomide319@gmail.com", "Victor", "Password@123"),
-            ("admin@nlpcpfa.com", "NLPC", "Admin@123456"),
+            ("victorayomide319@gmail.com", "Victor", "moneySTAND123@"),
+            ("admin@nlpcpfa.com", "NLPC", "moneySTAND123@"),
         ]:
+
             admin_user, created = CustomUser.objects.get_or_create(
                 email=admin_email,
                 defaults={
@@ -124,8 +125,9 @@ class Command(BaseCommand):
                 }
             )
             if created:
-                user.set_password("Password@123")
+                user.set_password("moneySTAND123@")
                 user.save()
+
 
             member, _ = Member.objects.get_or_create(
                 user=user,
@@ -198,8 +200,8 @@ class Command(BaseCommand):
         BackgroundJobService.accrue_monthly_interest(year=date.today().year, month=date.today().month)
 
         self.stdout.write(self.style.SUCCESS("Demo database successfully populated!"))
-        self.stdout.write(self.style.NOTICE("Test member credentials:"))
-        self.stdout.write("  Email: olumide.adebayo@gmail.com | Password: Password@123")
-        self.stdout.write("  Email: chioma.okonkwo@yahoo.com  | Password: Password@123")
-        self.stdout.write("  Email: babajide.sanusi@outlook.com| Password: Password@123")
-        self.stdout.write("  Admin: admin@nlpcpfa.com          | Password: Admin@123456")
+        self.stdout.write(self.style.NOTICE("Test account credentials (all password: moneySTAND123@):"))
+        self.stdout.write("  Admin:       victorayomide319@gmail.com | Password: moneySTAND123@")
+        self.stdout.write("  Contributor: moneystand123@gmail.com    | Password: moneySTAND123@")
+        self.stdout.write("  Admin (Alt): admin@nlpcpfa.com          | Password: moneySTAND123@")
+

@@ -39,12 +39,13 @@ The `seed_demo_data` command creates sample employers (Dangote, Zenith Bank, MTN
 
 | Account | Email | Password | Role / Notes |
 |:---|:---|:---|:---|
-| **Admin** | `victorayomide319@gmail.com` | `Password@123` | Full access to Operations Portal & background jobs |
-| **Admin (Backup)** | `admin@nlpcpfa.com` | `Admin@123456` | Standard PFA admin officer |
-| **Contributor** | `moneystand123@gmail.com` | `Password@123` | Contributor account, 6 months history |
-| **Contributor (Active)** | `olumide.adebayo@gmail.com` | `Password@123` | Active contributor, 24 months history |
-| **Contributor (Retirement)** | `babajide.sanusi@outlook.com` | `Password@123` | Age 54, 65 months history (Vested / Qualified) |
-| **Contributor (Younger)** | `chioma.okonkwo@yahoo.com` | `Password@123` | 12 months history |
+| **Admin** | `victorayomide319@gmail.com` | `moneySTAND123@` | Full access to Operations Portal & background jobs |
+| **Contributor** | `moneystand123@gmail.com` | `moneySTAND123@` | Primary contributor account |
+| **Admin (Backup)** | `admin@nlpcpfa.com` | `moneySTAND123@` | Standard PFA admin officer |
+| **Contributor (Active)** | `olumide.adebayo@gmail.com` | `moneySTAND123@` | Active contributor, 24 months history |
+| **Contributor (Retirement)** | `babajide.sanusi@outlook.com` | `moneySTAND123@` | Age 54, 65 months history (Vested / Qualified) |
+| **Contributor (Younger)** | `chioma.okonkwo@yahoo.com` | `moneySTAND123@` | 12 months history |
+
 
 
 ---
