@@ -50,6 +50,29 @@
             justify-content: space-between;
         }
 
+        @media (max-width: 576px) {
+            .site-navbar {
+                height: 58px;
+            }
+            .brand-link {
+                gap: 8px;
+            }
+            .brand-icon {
+                width: 30px;
+                height: 30px;
+                font-size: 0.95rem;
+                border-radius: 7px;
+            }
+            .brand-title {
+                font-size: 0.95rem;
+            }
+            .site-navbar .container {
+                padding-left: 14px;
+                padding-right: 14px;
+            }
+        }
+
+
         /* Logo Emblem */
         .brand-link {
             display: flex;
@@ -318,8 +341,22 @@
                         <span class="d-none d-sm-inline">Log out</span>
                     </a>
                 {% else %}
-                    <a class="btn btn-outline-green btn-sm" href="{% url 'login' %}">Log in</a>
-                    <a class="btn btn-green btn-sm" href="{% url 'signup' %}">Create Account</a>
+                    {% if request.resolver_match.url_name == 'login' %}
+                        <span class="text-muted small d-none d-md-inline me-1">Don't have an account?</span>
+                        <a class="btn btn-green btn-sm" href="{% url 'signup' %}">
+                            <span class="d-none d-sm-inline">Create Account</span>
+                            <span class="d-inline d-sm-none">Sign up</span>
+                        </a>
+                    {% elif request.resolver_match.url_name == 'signup' %}
+                        <span class="text-muted small d-none d-md-inline me-1">Already have an account?</span>
+                        <a class="btn btn-outline-green btn-sm" href="{% url 'login' %}">Log in</a>
+                    {% else %}
+                        <a class="btn btn-outline-green btn-sm" href="{% url 'login' %}">Log in</a>
+                        <a class="btn btn-green btn-sm" href="{% url 'signup' %}">
+                            <span class="d-none d-sm-inline">Create Account</span>
+                            <span class="d-inline d-sm-none">Sign up</span>
+                        </a>
+                    {% endif %}
                 {% endif %}
             </div>
 
