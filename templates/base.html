@@ -341,16 +341,8 @@
                         <span class="d-none d-sm-inline">Log out</span>
                     </a>
                 {% else %}
-                    {% if request.resolver_match.url_name == 'login' %}
-                        <span class="text-muted small d-none d-md-inline me-1">Don't have an account?</span>
-                        <a class="btn btn-green btn-sm" href="{% url 'signup' %}">
-                            <span class="d-none d-sm-inline">Create Account</span>
-                            <span class="d-inline d-sm-none">Sign up</span>
-                        </a>
-                    {% elif request.resolver_match.url_name == 'signup' %}
-                        <span class="text-muted small d-none d-md-inline me-1">Already have an account?</span>
-                        <a class="btn btn-outline-green btn-sm" href="{% url 'login' %}">Log in</a>
-                    {% else %}
+                    {# Distraction-free auth pages: no buttons on login/signup #}
+                    {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'signup' %}
                         <a class="btn btn-outline-green btn-sm" href="{% url 'login' %}">Log in</a>
                         <a class="btn btn-green btn-sm" href="{% url 'signup' %}">
                             <span class="d-none d-sm-inline">Create Account</span>
