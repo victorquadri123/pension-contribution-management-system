@@ -104,12 +104,3 @@ coverage report -m
 
 All 36 tests pass across member validation, contribution constraints, benefit calculations, background automation, web views, and REST endpoints (current test coverage: **86%**).
 
----
-
-## Docker Setup (Optional)
-
-To run the application containerized:
-```bash
-docker-compose up --build
-```
-The app will be available at `http://localhost:8000`.
