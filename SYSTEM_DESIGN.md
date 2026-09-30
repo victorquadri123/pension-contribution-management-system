@@ -1,351 +1,333 @@
-# EPS+ Pension Contribution Management System — System Design Document
+# EPS+ System Design & Implementation Notes
 
-**Organization:** NLPC PFA Limited  
-**Project:** EPS+ (Customer Onboarding, BDRM & Contribution Management)  
-**Deliverable:** System Architecture, Domain-Driven Design, Entity Modeling & Process Flows  
+**Project:** EPS+ Pension Contribution Management System  
+**Developer:** Victor Ayomide  
+**Submitted for:** NLPC PFA Technical Assessment  
 
 ---
 
-## 1. Solution Architecture Flow
+## 1. System Architecture
 
-The system employs a **Clean Layered Architecture** adhering to **Domain-Driven Design (DDD)** and **SOLID principles**. Presentation layers (Web UI and REST API) decouple from business orchestration (Services), domain models, and external storage engines.
+For this project, I chose a layered structure using Django and Django REST Framework. Rather than putting all the business logic inside the views or fat models, I separated the system into three main layers:
+
+1. **Presentation / Web & API Layer:** Handles HTTP requests, form validations, and JSON responses (using Django standard views for the frontend and DRF ViewSets for the API).
+2. **Service Layer (Business Logic):** Houses the core pension calculations, validation rules, benefit checks, and background tasks.
+3. **Data Layer (ORM Models):** Manages the database schema, relationships, and constraints.
+
+Here is a diagram showing how the different parts connect:
 
 ```mermaid
 flowchart TD
-    subgraph ClientLayer["Client & Integration Layer"]
-        Browser["Desktop & Mobile Web Browser\n(Bootstrap 5 + Responsive UI)"]
-        ExternalAPI["Third-Party Clients / Employers\n(REST API Consumers)"]
-        Swagger["Swagger UI / Postman Client\n(/api/docs/)"]
+    subgraph Clients["Users & Clients"]
+        WebUser["Web Browser\n(Members & Admins)"]
+        APIClient["API Clients / Postman\n(/api/v1/...)"]
     end
 
-    subgraph PresentationLayer["Presentation Layer (Django / DRF)"]
-        WebViews["Web Views & Controllers\n(Login, Dashboard, Statements)"]
-        APIViewSets["REST API ViewSets\n(/api/v1/members, /contributions)"]
-        Middlewares["Global Exception & Security Middleware\n(CSRF, Auth, Rate Limiting)"]
+    subgraph DjangoApp["Django Backend Application"]
+        subgraph WebLayer["Views & Endpoints"]
+            Views["Web Views & Templates\n(Dashboard, Onboarding, History)"]
+            API["REST API ViewSets\n(Members, Contributions, Jobs)"]
+        end
+
+        subgraph ServiceLayer["Business Logic (Services)"]
+            MemberSvc["MemberService\n(Registration, Age 18-70, RSA PIN)"]
+            ContribSvc["ContributionService\n(1-per-month rule, Balance calculation)"]
+            BenefitSvc["BenefitService\n(60-month service & age 50 rule)"]
+            JobSvc["BackgroundJobService\n(Validation, Interest calculation, Retries)"]
+        end
+
+        subgraph ModelLayer["Data Access (Django ORM)"]
+            Models["Models\n(Member, Employer, Contribution, Benefit, Interest)"]
+        end
     end
 
-    subgraph ApplicationLayer["Application & Business Logic Layer (Services)"]
-        MemberService["Member & Onboarding Service\n(Age 18-70 & RSA PIN Generation)"]
-        ContributionService["Contribution Service\n(1-per-month check & Statements)"]
-        BenefitService["Benefit Eligibility Engine\n(Vesting & PRA 2014 Rules)"]
-        JobService["Background Job Automation\n(Validation, Compounding ROI, Retries)"]
+    subgraph DataStore["Database & Storage"]
+        DB[("Database\n(SQLite locally / PostgreSQL in prod)")]
     end
 
-    subgraph DomainLayer["Domain & Data Access Layer (ORM / Repository)"]
-        MemberModel["Member & User Aggregate Root"]
-        EmployerModel["Employer Entity"]
-        ContributionModel["Contribution Entity (Constraints)"]
-        BenefitModel["BenefitEligibility Entity"]
-        JobLogModel["JobExecution & Notification Logs"]
-    end
+    WebUser --> Views
+    APIClient --> API
 
-    subgraph StorageLayer["Data & Persistence Layer"]
-        Database[("Relational Database\n(SQLite / PostgreSQL)")]
-    end
+    Views --> MemberSvc
+    Views --> ContribSvc
+    Views --> JobSvc
 
-    Browser -->|HTTP GET/POST| WebViews
-    ExternalAPI -->|JSON REST Requests| APIViewSets
-    Swagger -->|OpenAPI 3.0 Requests| APIViewSets
+    API --> MemberSvc
+    API --> ContribSvc
+    API --> BenefitSvc
+    API --> JobSvc
 
-    WebViews --> Middlewares
-    APIViewSets --> Middlewares
+    MemberSvc --> Models
+    ContribSvc --> Models
+    BenefitSvc --> Models
+    JobSvc --> Models
 
-    Middlewares --> MemberService
-    Middlewares --> ContributionService
-    Middlewares --> BenefitService
-    Middlewares --> JobService
+    Models --> DB
 
-    MemberService --> MemberModel
-    ContributionService --> ContributionModel
-    BenefitService --> BenefitModel
-    JobService --> JobLogModel
-    JobService --> ContributionModel
-
-    MemberModel --> Database
-    EmployerModel --> Database
-    ContributionModel --> Database
-    BenefitModel --> Database
-    JobLogModel --> Database
-
-    %% Highlight async background processing
-    JobService -.->|Scheduled / Async Trigger| ContributionModel
-    JobService -.->|Compounding Calculation| BenefitModel
+    %% Async/Background Job Flow
+    JobSvc -.->|Run via CLI or Admin Button| Models
 ```
 
 ---
 
-## 2. Entity-Relationship Diagram (ERD)
+## 2. Database Design (Entity-Relationship Diagram)
 
-The database schema models the lifecycle of contributors, their employers, mandatory and voluntary remittances, compounding returns, and benefit qualification.
+The database schema has 5 main models representing the core pension workflow:
 
 ```mermaid
 erDiagram
-    EMPLOYER ||--o{ MEMBER : "employs (1 : N)"
-    MEMBER ||--o{ CONTRIBUTION : "remits (1 : N)"
-    MEMBER ||--|| BENEFIT_ELIGIBILITY : "vests into (1 : 1)"
-    MEMBER ||--o{ INTEREST_ACCRUAL : "earns (1 : N)"
+    EMPLOYER ||--o{ MEMBER : "employs"
+    MEMBER ||--o{ CONTRIBUTION : "makes"
+    MEMBER ||--|| BENEFIT_ELIGIBILITY : "has"
+    MEMBER ||--o{ INTEREST_ACCRUAL : "earns"
 
     EMPLOYER {
         int id PK
-        string company_name "Indexed"
-        string registration_number UK "CAC / RC (Indexed)"
-        string email UK
-        string phone_number
-        text address
-        string status "ACTIVE | SUSPENDED"
-        boolean is_active
-        datetime created_at
-        datetime updated_at
-        boolean is_deleted "Soft-delete"
+        string company_name "Company Name"
+        string registration_number "CAC / RC Number (Unique)"
+        string email "Contact Email"
+        string phone_number "Phone"
+        string status "ACTIVE or SUSPENDED"
+        boolean is_deleted "Soft delete flag"
     }
 
     MEMBER {
         int id PK
-        int user_id FK, UK "1:1 with CustomUser"
-        int employer_id FK "Required for remittance"
-        string rsa_pin UK "PEN10XXXXXXXX (Indexed)"
-        string nin "11 numeric digits"
-        date date_of_birth "Restricted: 18 - 70 years"
-        string gender "MALE | FEMALE"
-        text address
-        string status "ACTIVE | SUSPENDED | RETIRED"
-        boolean is_onboarded "KYC Flag"
-        boolean is_deleted "Soft-delete"
-        datetime deleted_at
+        int user_id FK "Link to CustomUser"
+        int employer_id FK "Assigned Employer"
+        string rsa_pin "Unique PEN10... PIN"
+        string nin "11-digit NIN"
+        date date_of_birth "Restricted to 18-70 years"
+        string status "ACTIVE, SUSPENDED, or RETIRED"
+        boolean is_onboarded "KYC completed flag"
+        boolean is_deleted "Soft delete flag"
     }
 
     CONTRIBUTION {
         int id PK
-        int member_id FK "Indexed"
-        string contribution_type "MONTHLY | VOLUNTARY"
-        decimal amount "Amount > 0.00"
-        int contribution_year
-        int contribution_month "1 to 12"
-        date payment_date "Must not be future date"
-        string transaction_reference UK "Indexed"
-        string status "PENDING | VALIDATED | FAILED"
-        text failure_reason
-        datetime validated_at
-        boolean is_deleted "Soft-delete"
+        int member_id FK "Member"
+        string contribution_type "MONTHLY or VOLUNTARY"
+        decimal amount "Amount > 0"
+        int contribution_year "Year"
+        int contribution_month "Month (1-12)"
+        date payment_date "Payment date (cannot be future)"
+        string transaction_reference "Unique reference"
+        string status "PENDING, VALIDATED, or FAILED"
+        string failure_reason "Reason if failed"
+        boolean is_deleted "Soft delete flag"
     }
 
     BENEFIT_ELIGIBILITY {
         int id PK
-        int member_id FK, UK
-        int months_contributed "Validated monthly count"
-        decimal total_contributions_amount
-        decimal total_interest_amount
-        boolean is_eligible "Vested flag"
-        string eligibility_type "MINIMUM_SERVICE | RETIREMENT | NONE"
-        text status_notes
-        datetime last_evaluated_at
+        int member_id FK "One-to-one with Member"
+        int months_contributed "Number of validated monthly payments"
+        decimal total_contributions_amount "Sum of validated contributions"
+        decimal total_interest_amount "Accrued interest"
+        boolean is_eligible "Eligible for benefits flag"
+        string eligibility_type "MINIMUM_SERVICE or RETIREMENT"
     }
 
     INTEREST_ACCRUAL {
         int id PK
-        int member_id FK
-        int year
-        int month
-        decimal principal_balance
-        decimal annual_rate_percent "e.g. 10.5%"
-        decimal interest_amount "Monthly compounded ROI"
-        decimal closing_balance
-        datetime applied_at
+        int member_id FK "Member"
+        int year "Year"
+        int month "Month"
+        decimal principal_balance "Balance before interest"
+        decimal interest_amount "Monthly calculated interest"
+        decimal closing_balance "Balance after interest"
     }
 ```
+
+### Notes on Entity Design:
+- **Soft Deletes:** Since financial records should never be permanently deleted, models inherit from a base model that includes `is_deleted` and `deleted_at`.
+- **Database Constraint for Monthly Remittances:** I added a `UniqueConstraint` on `(member, contribution_year, contribution_month)` specifically for `MONTHLY` contributions. This ensures the database itself prevents double-remittance for the same month.
 
 ---
 
 ## 3. Process Flows (Sequence Diagrams)
 
-### 3.1 Member Registration & Onboarding Process
-This flow implements the 2-step onboarding pattern: simple initial registration followed by regulatory KYC verification (Age 18–70, 11-digit NIN, active employer association, and RSA PIN generation).
+### 3.1 Member Registration & KYC Onboarding
+I broke onboarding into two steps: initial account signup, followed by KYC details (DOB, NIN, and selecting an active employer) before an RSA PIN is generated.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as Contributor / Applicant
-    participant Portal as Web Portal / API
-    participant MemberSvc as MemberService
-    participant DB as Relational Database
-
-    User->>Portal: Submit Basic Info (Name, Email, Phone, Password)
-    Portal->>MemberSvc: register_user(email, password, ...)
-    MemberSvc->>DB: Check email uniqueness
-    MemberSvc->>DB: Insert CustomUser & un-onboarded Member (is_onboarded=False)
-    MemberSvc-->>Portal: User created & auto-logged in
-    Portal-->>User: Redirect to Onboarding (KYC) Screen
-
-    User->>Portal: Submit KYC (DOB, NIN, Select Employer, Address)
-    Portal->>MemberSvc: complete_onboarding(member, dob, nin, employer_id)
-    MemberSvc->>MemberSvc: Validate Age: 18 <= Age <= 70
-    alt Under 18 or Over 70
-        MemberSvc-->>Portal: Error: "Member must be between 18 and 70 years"
-        Portal-->>User: Show validation alert
-    else Valid Age & 11-digit NIN
-        MemberSvc->>DB: Verify Employer is_active and status == ACTIVE
-        MemberSvc->>MemberSvc: Generate unique RSA PIN (PEN10XXXXXXXX)
-        MemberSvc->>DB: Update Member (is_onboarded=True, rsa_pin, status=ACTIVE)
-        MemberSvc->>DB: Initialize BenefitEligibility record
-        MemberSvc-->>Portal: Onboarding Successful
-        Portal-->>User: Redirect to Dashboard with Welcome & RSA PIN
-    end
-```
-
----
-
-### 3.2 Monthly Contribution Processing (1-Per-Month Enforced)
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as Contributor / Employer
-    participant Portal as Web / API
-    participant ContribSvc as ContributionService
+    actor User as Member
+    participant View as Web/API
+    participant Service as MemberService
     participant DB as Database
-    participant JobRunner as Automation Engine
 
-    User->>Portal: Submit Contribution (Type=MONTHLY, Amount, Month, Year, Date)
-    Portal->>ContribSvc: record_contribution(member, MONTHLY, amount, month, year, date)
-    ContribSvc->>ContribSvc: Validate amount > 0 and date <= today
-    ContribSvc->>DB: Check existing MONTHLY contribution for (member, month, year)
-    alt Monthly contribution already exists for this calendar month
-        DB-->>ContribSvc: Existing record found
-        ContribSvc-->>Portal: Error: "A monthly contribution for Month/Year already exists."
-        Portal-->>User: Rejection message: Use Voluntary Contribution for extra deposits
-    else No duplicate monthly record
-        ContribSvc->>DB: Insert Contribution (status=PENDING, txn_ref=TXN-XXXXXXXX)
-        ContribSvc->>JobRunner: Trigger Validation Worker
-        JobRunner->>DB: Verify Employer is eligible and Member is active
-        JobRunner->>DB: Update Contribution status=VALIDATED, validated_at=now
-        JobRunner-->>Portal: Validated Successfully
-        Portal-->>User: Confirmation: Contribution Validated & Credited to RSA
+    User->>View: Sign up (Name, Email, Password)
+    View->>Service: Create user account
+    Service->>DB: Save user (is_onboarded = False)
+    View-->>User: Redirect to complete profile
+
+    User->>View: Submit KYC (DOB, 11-digit NIN, Employer)
+    View->>Service: complete_onboarding()
+    Service->>Service: Check age (must be between 18 and 70)
+    alt Age < 18 or > 70
+        Service-->>View: Error: Age restriction failure
+        View-->>User: Display age error
+    else Valid Age
+        Service->>DB: Verify employer exists and is ACTIVE
+        Service->>Service: Generate unique RSA PIN (PEN10...)
+        Service->>DB: Update member details & set is_onboarded = True
+        Service->>DB: Create initial BenefitEligibility record
+        View-->>User: Onboarding complete, show Dashboard
     end
 ```
 
 ---
 
-### 3.3 Voluntary Contribution Processing (AVC - Multiple Allowed)
+### 3.2 Monthly Contribution Processing
+Monthly contributions can only be recorded once per calendar month.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Contributor as Contributor / Employer
+    participant View as Web/API
+    participant Service as ContributionService
+    participant DB as Database
+
+    Contributor->>View: Submit Monthly Contribution (Amount, Month, Year, Date)
+    View->>Service: record_contribution(type='MONTHLY')
+    Service->>Service: Validate amount > 0 and date is not in future
+    Service->>DB: Check if MONTHLY contribution already exists for this month/year
+    alt Monthly contribution already exists
+        Service-->>View: Error: Monthly contribution already recorded for this month
+        View-->>Contributor: Show error (suggest Voluntary Contribution instead)
+    else First monthly contribution for this month
+        Service->>DB: Save contribution as PENDING
+        Service->>Service: Run validation (check active member & employer)
+        Service->>DB: Update status to VALIDATED
+        View-->>Contributor: Success: Contribution credited
+    end
+```
+
+---
+
+### 3.3 Voluntary Contribution Processing
+Unlike monthly contributions, members can make voluntary contributions multiple times in a month.
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Contributor as Contributor
-    participant Portal as Web / API
-    participant ContribSvc as ContributionService
+    participant View as Web/API
+    participant Service as ContributionService
     participant DB as Database
 
-    Contributor->>Portal: Submit Voluntary Contribution (Type=VOLUNTARY, Amount, Date)
-    Portal->>ContribSvc: record_contribution(member, VOLUNTARY, amount, month, year, date)
-    ContribSvc->>ContribSvc: Validate amount > 0 and date <= today
-    Note over ContribSvc,DB: Multiple voluntary contributions permitted within same month
-    ContribSvc->>DB: Insert Contribution (status=PENDING, type=VOLUNTARY)
-    ContribSvc->>DB: Run background validation against active account
-    DB-->>ContribSvc: Validated
-    ContribSvc-->>Portal: Created & Validated
-    Portal-->>Contributor: Voluntary contribution successfully added to RSA balance
+    Contributor->>View: Submit Voluntary Contribution (Amount, Date)
+    View->>Service: record_contribution(type='VOLUNTARY')
+    Service->>Service: Validate amount > 0 and date <= today
+    Note over Service,DB: Multiple voluntary contributions allowed in same month
+    Service->>DB: Save contribution as PENDING
+    Service->>Service: Validate member & employer status
+    Service->>DB: Update status to VALIDATED
+    View-->>Contributor: Success: Voluntary deposit credited
 ```
 
 ---
 
 ### 3.4 Benefit Eligibility Calculation
+Checks if the contributor has either reached 60 months of contributions (5 years) or is 50+ years old.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Evaluator as Scheduled Job / Officer
-    participant BenefitSvc as BenefitEligibility Engine
+    actor System as Scheduled Job / Admin
+    participant Service as BenefitService
     participant DB as Database
 
-    Evaluator->>BenefitSvc: evaluate_member_benefit(member_id)
-    BenefitSvc->>DB: Query validated monthly contributions count
-    BenefitSvc->>DB: Aggregate total validated contributions + accrued interest
-    BenefitSvc->>DB: Fetch member Date of Birth (calculate age)
-    
-    alt Member Age >= 50 and Monthly Count >= 1
-        BenefitSvc->>DB: Set is_eligible=True, type=RETIREMENT ("Retirement Age Qualified")
-    else Monthly Count >= 60 (5 Years Minimum Service)
-        BenefitSvc->>DB: Set is_eligible=True, type=MINIMUM_SERVICE ("60 Months Vesting Reached")
-    else Under 60 Months & Under 50 Years Old
-        BenefitSvc->>DB: Set is_eligible=False, type=NONE, record progress (X/60 months)
+    System->>Service: evaluate_member_benefit(member)
+    Service->>DB: Count validated monthly contributions
+    Service->>DB: Sum total contributions + interest
+    Service->>DB: Check member date of birth (calculate current age)
+
+    alt Age >= 50 and at least 1 contribution
+        Service->>DB: Set is_eligible = True, type = "RETIREMENT"
+    else Monthly contributions >= 60 months
+        Service->>DB: Set is_eligible = True, type = "MINIMUM_SERVICE"
+    else Under 60 months and under 50 years
+        Service->>DB: Set is_eligible = False (keep tracking progress)
     end
-    BenefitSvc-->>Evaluator: Updated Benefit Eligibility Record
+    Service-->>System: Updated eligibility status
 ```
 
 ---
 
 ### 3.5 Background Job Execution & Failure Handling
+Validates pending contributions, runs interest calculations, and logs results so failed transactions can be inspected and retried.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Scheduler as Background Job Engine
+    actor Admin as Admin / Job Runner
     participant JobService as BackgroundJobService
     participant DB as Database
-    participant Notification as Notification Audit Log
 
-    Scheduler->>JobService: validate_pending_contributions()
-    JobService->>DB: Create JobExecutionLog (status=RUNNING)
-    JobService->>DB: Fetch all Contribution records where status=PENDING
-    loop For Each Pending Contribution
-        JobService->>DB: Check Member.status and Employer.status
-        alt Member or Employer Suspended / Inactive
-            JobService->>DB: Set Contribution.status=FAILED, failure_reason="Employer/Member inactive"
-            JobService->>Notification: Insert NotificationLog (type=CONTRIBUTION_FAILED)
-        else All Checks Pass
-            JobService->>DB: Set Contribution.status=VALIDATED, validated_at=now
-            JobService->>Notification: Insert NotificationLog (type=CONTRIBUTION_VALIDATED)
-            JobService->>DB: Recalculate BenefitEligibility for member
+    Admin->>JobService: Run pending contributions check
+    JobService->>DB: Create JobExecutionLog (status: RUNNING)
+    JobService->>DB: Get all PENDING contributions
+
+    loop For each pending contribution
+        JobService->>DB: Check if employer is ACTIVE and member is ACTIVE
+        alt Employer or Member is inactive / suspended
+            JobService->>DB: Mark contribution as FAILED with reason
+            JobService->>DB: Save NotificationLog entry
+        else Checks pass
+            JobService->>DB: Mark contribution as VALIDATED
+            JobService->>DB: Update benefit eligibility
         end
     end
-    JobService->>DB: Update JobExecutionLog (status=SUCCESS, items_processed=N)
 
-    Scheduler->>JobService: retry_failed_transactions()
-    JobService->>DB: Query FAILED contributions where Employer/Member is now ACTIVE
-    JobService->>DB: Reset status=PENDING and re-run validation pipeline
+    JobService->>DB: Update JobExecutionLog (status: SUCCESS, items processed)
+    JobService-->>Admin: Job complete summary
 ```
 
 ---
 
-## 4. Interview Follow-Up Questions (Detailed Rationale)
+## 4. Interview Follow-Up Questions (My Thought Process)
 
-### Question 1: Architecture Decisions
-- **Chosen Architecture:** Clean Layered Architecture with Domain-Driven Design (DDD). We partitioned the application into core domain aggregates (`Member`, `Employer`, `Contribution`, `BenefitEligibility`), isolated business services (`MemberService`, `ContributionService`, `BackgroundJobService`), and presentation entry points (Bootstrap UI views and REST ViewSets).
-- **Alternative Approaches Considered:**
-  1. *Microservices:* Considered separating Members, Contributions, and Background Jobs into distinct microservices. However, for a single cohesive pension domain, a microservices setup introduces unnecessary distributed transaction overhead, network latency, and deployment complexity.
-  2. *Standard Monolithic Fat-Models:* Considered embedding all business rules in Django model methods or views. This was rejected because business logic quickly leaks into HTTP controllers, making unit testing fragile and violating Single Responsibility.
-- **Design Patterns Implemented:**
-  - **Service Layer Pattern:** Encapsulates transaction management, validation orchestrations, and event triggers.
-  - **Aggregate Root & Value Objects:** `Member` acts as an aggregate root coordinating profile state, RSA PIN generation, and benefit recalculation.
-  - **Soft-Delete Pattern:** Implemented via `BaseModel` and custom `SoftDeleteManager` to ensure regulatory auditability (PRA 2014 forbids hard deletion of financial records).
+### 1. Architecture Decisions
+- **Why I chose this structure:**  
+  I used a modular Django setup with dedicated apps (`members`, `employers`, `contributions`, `benefits`, `jobs`) and a service layer. This keeps views focused purely on handling requests, while the actual business logic (like age validation and monthly contribution restrictions) lives in the services where it can easily be tested with unit tests.
+- **Alternatives considered:**  
+  I thought about building a microservices architecture, but given the scope and tight relationships between members, employers, and contributions, a microservices setup would have added unnecessary complexity (like managing distributed transactions and separate databases) for what is currently a single cohesive system.
+- **Patterns used:**  
+  - Service pattern for business logic.
+  - Soft-delete pattern (`BaseModel`) so records are marked inactive instead of being permanently removed from the database.
 
-### Question 2: Technical Choices
-- **Database & ORM Design:**
-  - Composite unique constraint `UniqueConstraint(fields=['member', 'contribution_year', 'contribution_month'], condition=Q(contribution_type='MONTHLY'))` guarantees that no race condition can ever produce duplicate monthly contributions at the database engine level.
-  - Indexing on `rsa_pin`, `transaction_reference`, `(member_id, status)`, and `registration_number` for fast lookups.
-- **Background Jobs Strategy:**
-  - Modeled with idempotent job runners that can execute via Celery/Huey workers, cron schedules, or the PFA Operations Portal.
-  - Every job writes to `JobExecutionLog` and `NotificationLog` with execution duration, count of processed items, and explicit failure reasons.
-- **Error Handling Strategy:**
-  - Defensive model and serializer validation raising structured `ValidationError` with distinct field keys.
-  - Global transaction rollbacks via `@transaction.atomic` ensure that no partial writes occur if onboarding or contribution validation fails midway.
+---
 
-### Question 3: Scalability Considerations
-- **Database Optimization:**
-  - Read queries utilize `select_related('user', 'employer')` to prevent the N+1 query problem across high-volume listings.
-  - Pre-aggregated balance calculations and indexed temporal ranges for Statement of Account generation.
-- **Handling Large Datasets:**
-  - Batch chunking (`QuerySet.iterator(chunk_size=1000)`) for monthly interest accrual across hundreds of thousands of members.
-  - Distributed background workers handling contribution validation queues concurrently without locking member rows.
-- **Caching Strategy:**
-  - Cache member dashboard balance summaries with TTL invalidation triggered only when new contributions are validated or interest is credited.
+### 2. Technical Choices
+- **Django & Django REST Framework:**  
+  I chose Django and DRF because Django provides reliable built-in authentication, an ORM with migration handling, and an admin interface out of the box, while DRF makes generating REST APIs straightforward.
+- **Database constraints:**  
+  Instead of only relying on `if` conditions in Python code, I added a database `UniqueConstraint` on the `Contribution` table for monthly contributions. That way, even if two requests come in at the same moment, the database itself will prevent duplicate entries.
+- **Background Jobs:**  
+  In this submission, background jobs are implemented as service methods that can be triggered via Django management commands (`python manage.py run_jobs`) or from the admin portal. Every execution records a log in the database with timestamps and status notes.
 
-### Question 4: Security Implementation
-- **Authentication & Authorization:**
-  - Django's battle-tested session and PBKDF2/SHA256 password hashing.
-  - Role-Based Access Control (RBAC): Contributors access only their own dashboard and statements; PFA Administrators access the Operations Portal and background job controls.
-- **Data Protection:**
-  - PII masking on National Identity Numbers (NIN) in public responses.
-  - Complete CSRF token verification across all POST, PUT, and DELETE forms and API requests.
-- **API Security:**
-  - Input sanitization through DRF serializers, SQL parameterization via ORM to completely eliminate SQL injection, and rate-limiting throttling classes to prevent brute-force attacks.
+---
+
+### 3. Scalability Considerations
+- **Database queries:**  
+  To avoid the N+1 query problem, I used `select_related('user', 'employer')` when fetching member and contribution listings.
+- **Caching:**  
+  Calculating member totals (total contributions, monthly count, and interest) requires running aggregate database queries. I added caching to `get_member_totals()` so repeated dashboard views load quickly, and invalidated the cache whenever a new contribution is saved.
+- **Future production improvements:**  
+  As the system grows to handle hundreds of thousands of members:
+  - Migrate from SQLite to PostgreSQL.
+  - Offload background jobs to Celery with Redis so jobs run completely out-of-process.
+  - Use database batch chunking (`iterator()`) when running interest calculations across large datasets.
+
+---
+
+### 4. Security Implementation
+- **Authentication & Permissions:**  
+  Django's standard authentication with PBKDF2 password hashing is used. Custom role checks ensure that regular contributors can only see their own dashboard and statements, while admin operations (like triggering batch jobs or viewing all members) are restricted to staff users.
+- **Input Validation:**  
+  All forms and API endpoints validate input types, check that contribution amounts are positive numbers, and reject future payment dates.
+- **Data Protection:**  
+  CSRF protection is enabled on all web forms, and standard ORM queries are used throughout to protect against SQL injection.
