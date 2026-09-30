@@ -8,19 +8,22 @@
 
     <!-- Action Required Banner for Incomplete Profile -->
     {% if not member.is_onboarded %}
-    <div class="card border-warning-subtle bg-warning-subtle bg-opacity-25 p-3 mb-4 shadow-sm">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-            <div class="d-flex align-items-center gap-3">
-                <div class="bg-warning text-dark rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
-                    <i class="bi bi-exclamation-triangle-fill fs-6"></i>
+    <div class="card border-warning-subtle bg-warning-subtle bg-opacity-25 p-2 p-sm-3 mb-3 mb-sm-4 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 gap-sm-3">
+                <div class="bg-warning text-dark rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px;">
+                    <i class="bi bi-exclamation-triangle-fill" style="font-size: 0.85rem;"></i>
                 </div>
                 <div>
-                    <h6 class="fw-bold mb-0 text-dark">Profile Setup Required</h6>
-                    <p class="text-muted small mb-0">Add your Date of Birth, NIN, and Employer to generate your RSA PIN and unlock contributions.</p>
+                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.92rem;">Profile Setup Required</h6>
+                    <p class="text-muted small mb-0 d-none d-sm-block">Add your DOB & NIN to generate your RSA PIN.</p>
                 </div>
+
             </div>
-            <a href="{% url 'profile' %}" class="btn btn-sm btn-dark text-nowrap">
-                <i class="bi bi-shield-check me-1"></i> Complete Profile Now
+            <a href="{% url 'profile' %}" class="btn btn-sm btn-dark text-nowrap py-1 px-2 px-sm-3 flex-shrink-0" style="font-size: 0.82rem;">
+                <span class="d-none d-sm-inline">Complete Setup</span>
+                <span class="d-inline d-sm-none">Set Up</span>
+                <i class="bi bi-arrow-right ms-1"></i>
             </a>
         </div>
     </div>
