@@ -1,4 +1,3 @@
-import random
 from datetime import date, timedelta
 from decimal import Decimal
 from django.core.management.base import BaseCommand
@@ -7,45 +6,47 @@ from apps.employers.models import Employer
 from apps.members.models import CustomUser, Member
 from apps.contributions.models import Contribution
 from apps.benefits.models import BenefitEligibility
-from apps.jobs.services import BackgroundJobService
 
 class Command(BaseCommand):
-    help = 'Seeds initial employers, members, and contribution history for testing and live demo.'
+    help = 'Seeds authentic employers, members, and real initial state matching the local database.'
 
     def handle(self, *args, **options):
-        self.stdout.write("Seeding demo data for NLPC PFA EPS+ System...")
+        self.stdout.write("Seeding real demo data for NLPC PFA EPS+ System...")
 
-        # 1. Superuser / Admin
-        for admin_email, admin_fname, admin_pwd in [
-            ("victorayomide319@gmail.com", "Victor", "moneySTAND123@"),
-            ("admin@nlpcpfa.com", "NLPC", "moneySTAND123@"),
-        ]:
-
-            admin_user, created = CustomUser.objects.get_or_create(
-                email=admin_email,
+        # 1. Superuser / Admin Accounts
+        admin_data = [
+            ("victorayomide319@gmail.com", "Victor", "Ayomide", "moneySTAND123@", CustomUser.Role.ADMIN),
+            ("admin@nlpcpfa.com", "NLPC", "Administrator", "moneySTAND123@", CustomUser.Role.ADMIN),
+        ]
+        admin_users = {}
+        for email, fname, lname, pwd, role in admin_data:
+            user, created = CustomUser.objects.get_or_create(
+                email=email,
                 defaults={
-                    'first_name': admin_fname,
-                    'last_name': 'Administrator',
-                    'role': CustomUser.Role.ADMIN,
+                    'first_name': fname,
+                    'last_name': lname,
+                    'role': role,
                     'is_staff': True,
                     'is_superuser': True,
                 }
             )
-            if created:
-                admin_user.set_password(admin_pwd)
-                admin_user.save()
-                self.stdout.write(self.style.SUCCESS(f"Created Admin: {admin_email} / {admin_pwd}"))
+            user.set_password(pwd)
+            user.is_staff = True
+            user.is_superuser = True
+            user.role = role
+            user.save()
+            admin_users[email] = user
+            self.stdout.write(self.style.SUCCESS(f"Configured Admin: {email}"))
 
-
-        # 2. Employers
+        # 2. Accredited Employers
         employers_data = [
+            ("MTN Nigeria Communications", "RC-482910", "hr@mtn.ng", "+2348030000004", "Golden Plaza, Falomo, Ikoyi, Lagos"),
             ("NLPC PFA Limited", "RC-104928", "info@nlpcpfa.com", "+2348030000001", "312 Herbert Macaulay Way, Yaba, Lagos"),
             ("Dangote Industries Ltd", "RC-203948", "pensions@dangote.com", "+2348030000002", "1 Alfred Rewane Road, Ikoyi, Lagos"),
             ("Zenith Bank Plc", "RC-394820", "remittance@zenithbank.com", "+2348030000003", "Plot 84 Ajose Adeogun, Victoria Island, Lagos"),
-            ("MTN Nigeria Communications", "RC-482910", "hr@mtn.ng", "+2348030000004", "Golden Plaza, Falomo, Ikoyi, Lagos"),
         ]
 
-        employer_objs = []
+        employer_objs = {}
         for name, reg, email, phone, addr in employers_data:
             emp, _ = Employer.objects.get_or_create(
                 registration_number=reg,
@@ -58,114 +59,112 @@ class Command(BaseCommand):
                     'is_active': True
                 }
             )
-            employer_objs.append(emp)
-        self.stdout.write(self.style.SUCCESS(f"Created {len(employer_objs)} Employers."))
+            employer_objs[name] = emp
+        self.stdout.write(self.style.SUCCESS(f"Configured {len(employer_objs)} Employers."))
 
-        # 3. Contributor Member
-        members_seed = [
-            {
-                'email': 'moneystand123@gmail.com',
+        # 3. Victor Ayomide Member Profile (Onboarded with ₦200,000 contribution yesterday)
+        victor_user = admin_users["victorayomide319@gmail.com"]
+        victor_member, _ = Member.objects.get_or_create(
+            user=victor_user,
+            defaults={
+                'employer': employer_objs["MTN Nigeria Communications"],
+                'rsa_pin': 'PEN1050998995',
+                'date_of_birth': date(2004, 5, 1),
+                'nin': '34332435333',
+                'gender': Member.Gender.MALE,
+                'address': '112 ebuwawa road',
+                'is_onboarded': True,
+                'status': Member.Status.ACTIVE
+            }
+        )
+        # Ensure exact profile values
+        victor_member.employer = employer_objs["MTN Nigeria Communications"]
+        victor_member.rsa_pin = 'PEN1050998995'
+        victor_member.date_of_birth = date(2004, 5, 1)
+        victor_member.nin = '34332435333'
+        victor_member.gender = Member.Gender.MALE
+        victor_member.address = '112 ebuwawa road'
+        victor_member.is_onboarded = True
+        victor_member.status = Member.Status.ACTIVE
+        victor_member.save()
+
+        # Seed Victor's ₦200,000 contribution yesterday
+        yesterday = date.today() - timedelta(days=1)
+        Contribution.objects.get_or_create(
+            transaction_reference='TXN-1517253B536F',
+            defaults={
+                'member': victor_member,
+                'contribution_type': Contribution.ContributionType.MONTHLY,
+                'amount': Decimal('200000.00'),
+                'contribution_year': yesterday.year,
+                'contribution_month': yesterday.month,
+                'payment_date': yesterday,
+                'status': Contribution.Status.VALIDATED,
+                'validated_at': timezone.now()
+            }
+        )
+        victor_eligibility, _ = BenefitEligibility.objects.get_or_create(member=victor_member)
+        victor_eligibility.evaluate()
+        self.stdout.write(self.style.SUCCESS("Configured Victor Ayomide member profile and ₦200,000 contribution."))
+
+        # 4. Money Stand Member Account (UNVERIFIED / Pending KYC)
+        money_user, created = CustomUser.objects.get_or_create(
+            email='moneystand123@gmail.com',
+            defaults={
                 'first_name': 'Money',
                 'last_name': 'Stand',
-                'phone': '+2348099887766',
-                'dob': date(1990, 8, 15),
-                'gender': Member.Gender.MALE,
-                'nin': '11223344556',
-                'employer': employer_objs[0],
-                'months_history': 6,
-                'salary_contrib': Decimal('50000.00'),
+                'role': CustomUser.Role.MEMBER
             }
-        ]
+        )
+        money_user.set_password('moneySTAND123@')
+        money_user.save()
 
+        money_member, _ = Member.objects.get_or_create(
+            user=money_user,
+            defaults={
+                'is_onboarded': False,
+                'status': Member.Status.ACTIVE,
+                'rsa_pin': None,
+                'employer': None,
+                'date_of_birth': None,
+                'nin': None,
+            }
+        )
+        # Ensure Money Stand is UNVERIFIED with zero contributions
+        money_member.is_onboarded = False
+        money_member.rsa_pin = None
+        money_member.employer = None
+        money_member.date_of_birth = None
+        money_member.nin = None
+        money_member.save()
 
-        for m_data in members_seed:
-            user, created = CustomUser.objects.get_or_create(
-                email=m_data['email'],
-                defaults={
-                    'first_name': m_data['first_name'],
-                    'last_name': m_data['last_name'],
-                    'phone_number': m_data['phone'],
-                    'role': CustomUser.Role.MEMBER
-                }
-            )
-            if created:
-                user.set_password("moneySTAND123@")
-                user.save()
+        # Delete any accidental dummy contributions for money_member
+        Contribution.objects.filter(member=money_member).delete()
 
+        money_eligibility, _ = BenefitEligibility.objects.get_or_create(member=money_member)
+        money_eligibility.evaluate()
+        self.stdout.write(self.style.SUCCESS("Configured Money Stand as unverified member (zero contributions, KYC pending)."))
 
-            member, _ = Member.objects.get_or_create(
-                user=user,
-                defaults={
-                    'employer': m_data['employer'],
-                    'date_of_birth': m_data['dob'],
-                    'gender': m_data['gender'],
-                    'nin': m_data['nin'],
-                    'address': "Lagos, Nigeria",
-                    'is_onboarded': True,
-                    'status': Member.Status.ACTIVE
-                }
-            )
-            if not member.is_onboarded:
-                member.is_onboarded = True
-                member.employer = m_data['employer']
-                member.date_of_birth = m_data['dob']
-                member.nin = m_data['nin']
-                member.save()
+        # 5. Additional Demo Account: Kudirat
+        kudirat_user, _ = CustomUser.objects.get_or_create(
+            email='kudiratkf72@gmail.com',
+            defaults={
+                'first_name': 'kudirat',
+                'last_name': 'folasade',
+                'role': CustomUser.Role.MEMBER
+            }
+        )
+        kudirat_user.set_password('moneySTAND123@')
+        kudirat_user.save()
+        kudirat_member, _ = Member.objects.get_or_create(
+            user=kudirat_user,
+            defaults={'is_onboarded': False, 'status': Member.Status.ACTIVE}
+        )
+        kudirat_member.is_onboarded = False
+        kudirat_member.save()
 
-            # Seed historical contributions
-            today = date.today()
-            months = m_data['months_history']
-            for i in range(months, 0, -1):
-                # Calculate year and month back
-                total_months = today.year * 12 + today.month - i
-                c_year = total_months // 12
-                c_month = total_months % 12
-                if c_month == 0:
-                    c_month = 12
-                    c_year -= 1
-
-                p_date = date(c_year, c_month, 25)
-                if p_date > today:
-                    p_date = today
-
-                # 1 Mandatory Monthly
-                if not Contribution.objects.filter(member=member, contribution_year=c_year, contribution_month=c_month, contribution_type=Contribution.ContributionType.MONTHLY).exists():
-                    Contribution.objects.create(
-                        member=member,
-                        contribution_type=Contribution.ContributionType.MONTHLY,
-                        amount=m_data['salary_contrib'],
-                        contribution_year=c_year,
-                        contribution_month=c_month,
-                        payment_date=p_date,
-                        status=Contribution.Status.VALIDATED,
-                        validated_at=timezone.now()
-                    )
-
-                # Occasional Voluntary Contribution (AVC)
-                if i % 4 == 0:
-                    Contribution.objects.create(
-                        member=member,
-                        contribution_type=Contribution.ContributionType.VOLUNTARY,
-                        amount=Decimal('20000.00'),
-                        contribution_year=c_year,
-                        contribution_month=c_month,
-                        payment_date=p_date,
-                        status=Contribution.Status.VALIDATED,
-                        validated_at=timezone.now()
-                    )
-
-            # Evaluate eligibility
-            eligibility, _ = BenefitEligibility.objects.get_or_create(member=member)
-            eligibility.evaluate()
-
-        self.stdout.write(self.style.SUCCESS("Members and contributions created."))
-
-        # 4. Run background interest accrual
-        BackgroundJobService.accrue_monthly_interest(year=date.today().year, month=date.today().month)
-
-        self.stdout.write(self.style.SUCCESS("Demo database successfully populated!"))
-        self.stdout.write(self.style.NOTICE("Test account credentials (all password: moneySTAND123@):"))
-        self.stdout.write("  Admin:       victorayomide319@gmail.com | Password: moneySTAND123@")
-        self.stdout.write("  Contributor: moneystand123@gmail.com    | Password: moneySTAND123@")
-        self.stdout.write("  Admin (Alt): admin@nlpcpfa.com          | Password: moneySTAND123@")
-
+        self.stdout.write(self.style.SUCCESS("Demo database successfully synchronized with backend state!"))
+        self.stdout.write(self.style.NOTICE("Active account credentials (all password: moneySTAND123@):"))
+        self.stdout.write("  Admin:       victorayomide319@gmail.com | ₦200k Contribution (Verified)")
+        self.stdout.write("  Contributor: moneystand123@gmail.com    | Pending Setup (Unverified)")
+        self.stdout.write("  Admin (Alt): admin@nlpcpfa.com          | Operations Admin")

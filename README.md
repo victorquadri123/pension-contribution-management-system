@@ -39,9 +39,10 @@ The `seed_demo_data` command creates sample employers (Dangote, Zenith Bank, MTN
 
 | Account | Email | Password | Role / Notes |
 |:---|:---|:---|:---|
-| **Admin** | `victorayomide319@gmail.com` | `moneySTAND123@` | Full access to Operations Portal & background jobs |
-| **Contributor** | `moneystand123@gmail.com` | `moneySTAND123@` | Primary contributor account |
-| **Admin (Backup)** | `admin@nlpcpfa.com` | `moneySTAND123@` | Standard PFA admin officer |
+| **Admin** | `victorayomide319@gmail.com` | `moneySTAND123@` | Full access to Operations Portal & Member (₦200,000 contribution) |
+| **Contributor** | `moneystand123@gmail.com` | `moneySTAND123@` | Contributor account (Unverified / Pending KYC setup) |
+| **Admin (Backup)** | `admin@nlpcpfa.com` | `moneySTAND123@` | Operations Admin officer |
+
 
 
 
