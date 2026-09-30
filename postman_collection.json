@@ -1,0 +1,325 @@
+{
+  "info": {
+    "_postman_id": "nlpc-pfa-eps-plus-api-v1",
+    "name": "EPS+ Pension Contribution Management API (NLPC PFA)",
+    "description": "Postman API Collection for testing Member Onboarding, Contributions, Employer Management, Benefit Eligibility, and Background Jobs.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Employers",
+      "item": [
+        {
+          "name": "List Employers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/employers/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "employers", ""]
+            }
+          }
+        },
+        {
+          "name": "Register Employer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company_name\": \"Flour Mills of Nigeria Plc\",\n  \"registration_number\": \"RC-FMN-7766\",\n  \"email\": \"pensions@fmnplc.com\",\n  \"phone_number\": \"+2348031122334\",\n  \"address\": \"1 Golden Penny Place, Apapa, Lagos\",\n  \"status\": \"ACTIVE\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/employers/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "employers", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Members",
+      "item": [
+        {
+          "name": "List Members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/members/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "members", ""]
+            }
+          }
+        },
+        {
+          "name": "Register Contributor (Step 1)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Kehinde\",\n  \"last_name\": \"Fashola\",\n  \"email\": \"kehinde.fashola@example.com\",\n  \"phone_number\": \"+2348023344556\",\n  \"password\": \"Password@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/members/register/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "members", "register", ""]
+            }
+          }
+        },
+        {
+          "name": "Complete Onboarding & KYC (Step 2 - Age 18-70 & RSA PIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employer_id\": 1,\n  \"date_of_birth\": \"1992-08-14\",\n  \"nin\": \"12345678901\",\n  \"gender\": \"MALE\",\n  \"address\": \"Plot 12 Lekki Phase 1, Lagos\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/members/1/onboard/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "members", "1", "onboard", ""]
+            }
+          }
+        },
+        {
+          "name": "Soft Delete Member",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/members/1/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "members", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "Restore Soft-Deleted Member",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/members/1/restore/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "members", "1", "restore", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Contributions",
+      "item": [
+        {
+          "name": "List Contributions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/contributions/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "contributions", ""]
+            }
+          }
+        },
+        {
+          "name": "Record Monthly Contribution (Strict 1-per-month)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"member_id\": 1,\n  \"contribution_type\": \"MONTHLY\",\n  \"amount\": \"45000.00\",\n  \"contribution_year\": 2025,\n  \"contribution_month\": 6,\n  \"payment_date\": \"2025-06-25\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/contributions/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "contributions", ""]
+            }
+          }
+        },
+        {
+          "name": "Record Voluntary Contribution (Multiple Allowed)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"member_id\": 1,\n  \"contribution_type\": \"VOLUNTARY\",\n  \"amount\": \"25000.00\",\n  \"contribution_year\": 2025,\n  \"contribution_month\": 6,\n  \"payment_date\": \"2025-06-27\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/contributions/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "contributions", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Member Contribution Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/contributions/summary/?member_id=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "contributions", "summary", ""],
+              "query": [
+                { "key": "member_id", "value": "1" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Generate Statement of Account",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/contributions/statement/?member_id=1&start_date=2024-01-01&end_date=2025-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "contributions", "statement", ""],
+              "query": [
+                { "key": "member_id", "value": "1" },
+                { "key": "start_date", "value": "2024-01-01" },
+                { "key": "end_date", "value": "2025-12-31" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Benefit Eligibility",
+      "item": [
+        {
+          "name": "List Benefit Eligibilities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/benefits/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "benefits", ""]
+            }
+          }
+        },
+        {
+          "name": "Evaluate Member Eligibility",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/benefits/1/evaluate/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "benefits", "1", "evaluate", ""]
+            }
+          }
+        },
+        {
+          "name": "Evaluate All Active Members",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/benefits/evaluate_all/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "benefits", "evaluate_all", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Background Jobs",
+      "item": [
+        {
+          "name": "Trigger Contribution Validation Job",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/jobs/validate-contributions/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "jobs", "validate-contributions", ""]
+            }
+          }
+        },
+        {
+          "name": "Trigger Monthly Interest Accrual Job",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"annual_rate\": \"10.50\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/jobs/accrue-interest/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "jobs", "accrue-interest", ""]
+            }
+          }
+        },
+        {
+          "name": "Trigger Retry Failed Transactions Job",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/jobs/retry-failed/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "jobs", "retry-failed", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Job Execution Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/jobs/logs/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "jobs", "logs", ""]
+            }
+          }
+        },
+        {
+          "name": "Get System Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/jobs/notifications/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "jobs", "notifications", ""]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000"
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Statement | NLPC Pension{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <!-- Header Actions (hidden on print) -->
+    <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+        <div>
+            <h4 class="fw-bold mb-1">Account Statement</h4>
+            <p class="text-muted small mb-0">{{ member.full_name }} &bull; PIN: {{ member.rsa_pin }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button onclick="window.print()" class="btn btn-green btn-sm">
+                <i class="bi bi-printer me-1"></i> Print
+            </button>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">Back</a>
+        </div>
+    </div>
+
+    <!-- Date Filter (hidden on print) -->
+    <div class="card p-3 mb-4 no-print">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label small text-muted mb-1">From</label>
+                <input type="date" name="start_date" class="form-control form-control-sm" value="{{ start_date|date:'Y-m-d'|default:'' }}">
+            </div>
+            <div class="col-md-5">
+                <label class="form-label small text-muted mb-1">To</label>
+                <input type="date" name="end_date" class="form-control form-control-sm" value="{{ end_date|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-green w-100">Filter</button>
+                <a href="{% url 'statement' %}" class="btn btn-sm btn-outline-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Printable Statement Card -->
+    <div class="card p-4">
+
+        <!-- Statement Top Header -->
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+            <div>
+                <h5 class="fw-bold text-success mb-0">NLPC PFA</h5>
+                <span class="small text-muted">Retirement Savings Account</span>
+            </div>
+            <div class="text-end">
+                <div class="small fw-semibold">{{ now|date:"d M Y" }}</div>
+                <div class="small text-muted">Statement of Account</div>
+            </div>
+        </div>
+
+        <!-- Member Meta -->
+        <div class="row g-2 mb-4 bg-light p-3 rounded small">
+            <div class="col-md-6">
+                <div>Name: <strong>{{ member.full_name }}</strong></div>
+                <div>PIN: <strong>{{ member.rsa_pin }}</strong></div>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <div>Employer: <strong>{{ member.employer.company_name|default:"-" }}</strong></div>
+                <div>Period: <strong>{% if start_date %}{{ start_date|date:"d M Y" }}{% else %}Start{% endif %} to {{ end_date|date:"d M Y" }}</strong></div>
+            </div>
+        </div>
+
+        <!-- Summary Figures -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="border rounded p-3 text-center">
+                    <div class="small text-muted mb-1">Opening Balance</div>
+                    <h5 class="fw-bold mb-0">₦{{ statement.opening_balance|intcomma }}</h5>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="border rounded p-3 text-center">
+                    <div class="small text-muted mb-1">Total Deposits</div>
+                    <h5 class="fw-bold text-dark mb-0">₦{{ statement.period_contributions_total|intcomma }}</h5>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="border rounded p-3 text-center bg-success-subtle border-success-subtle">
+                    <div class="small text-success fw-semibold mb-1">Closing Balance</div>
+                    <h5 class="fw-bold text-success mb-0">₦{{ statement.closing_balance|intcomma }}</h5>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <h6 class="fw-bold mb-2">Transactions</h6>
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle small mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th style="width: 15%;">Date</th>
+                        <th style="width: 25%;">Reference</th>
+                        <th style="width: 40%;">Description</th>
+                        <th style="width: 20%;" class="text-end">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in statement.transactions %}
+                        <tr>
+                            <td>{{ item.date|date:"d/m/Y" }}</td>
+                            <td><code>{{ item.reference }}</code></td>
+                            <td>{{ item.description }}</td>
+                            <td class="text-end fw-semibold">₦{{ item.amount|intcomma }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-3 text-muted">No transactions in this period.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="bg-light fw-bold">
+                    <tr>
+                        <td colspan="3" class="text-end">Closing Balance:</td>
+                        <td class="text-end text-success">₦{{ statement.closing_balance|intcomma }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

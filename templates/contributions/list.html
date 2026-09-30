@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}History | NLPC Pension{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold mb-1">Contributions</h4>
+            <p class="text-muted small mb-0">PIN: {{ member.rsa_pin }}</p>
+        </div>
+        <a href="{% url 'make_contribution' %}" class="btn btn-green btn-sm">
+            <i class="bi bi-plus-lg me-1"></i> Add Contribution
+        </a>
+    </div>
+
+    <!-- Filter -->
+    <div class="card p-3 mb-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-5">
+                <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Types</option>
+                    <option value="MONTHLY" {% if current_type == 'MONTHLY' %}selected{% endif %}>Monthly</option>
+                    <option value="VOLUNTARY" {% if current_type == 'VOLUNTARY' %}selected{% endif %}>Voluntary</option>
+                </select>
+            </div>
+            <div class="col-md-5">
+                <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Statuses</option>
+                    <option value="VALIDATED" {% if current_status == 'VALIDATED' %}selected{% endif %}>Done</option>
+                    <option value="PENDING" {% if current_status == 'PENDING' %}selected{% endif %}>Pending</option>
+                    <option value="FAILED" {% if current_status == 'FAILED' %}selected{% endif %}>Failed</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <a href="{% url 'contributions_list' %}" class="btn btn-sm btn-outline-secondary w-100">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="small text-muted bg-light">
+                    <tr>
+                        <th class="ps-3">DATE</th>
+                        <th>REF</th>
+                        <th>TYPE</th>
+                        <th>PERIOD</th>
+                        <th>AMOUNT</th>
+                        <th>STATUS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in contributions %}
+                        <tr>
+                            <td class="ps-3">{{ c.payment_date|date:"d M Y" }}</td>
+                            <td><code class="text-dark">{{ c.transaction_reference }}</code></td>
+                            <td>
+                                {% if c.contribution_type == 'MONTHLY' %}
+                                    <span class="badge bg-light text-dark border">Monthly</span>
+                                {% else %}
+                                    <span class="badge bg-light text-success border">Voluntary</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ c.contribution_month }}/{{ c.contribution_year }}</td>
+                            <td class="fw-bold">₦{{ c.amount|intcomma }}</td>
+                            <td>
+                                {% if c.status == 'VALIDATED' %}
+                                    <span class="badge badge-status badge-ok">Done</span>
+                                {% elif c.status == 'PENDING' %}
+                                    <span class="badge badge-status badge-wait">Pending</span>
+                                {% else %}
+                                    <span class="badge badge-status badge-fail">Failed</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted small">
+                                No records found.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

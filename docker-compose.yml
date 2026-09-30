@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: eps_pension_app
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_SECRET_KEY=production-secret-key-nlpc-pfa-2025
+      - DEBUG=True
+    volumes:
+      - .:/app
+    restart: unless-stopped

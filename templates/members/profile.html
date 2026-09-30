@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+
+{% block title %}My Profile | NLPC Pension{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center mt-3">
+        <div class="col-md-7">
+
+            <div class="card p-4">
+
+                {% if is_onboarding or not member.is_onboarded %}
+                    <!-- Complete Profile Setup State -->
+                    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+                        <div>
+                            <h4 class="fw-bold mb-1">Set Up Your Profile</h4>
+                            <p class="text-muted small mb-0">Fill in your details to activate your RSA account and generate your PIN</p>
+                        </div>
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1 small">Setup Required</span>
+                    </div>
+
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger py-2 small mb-3">
+                                {% for error in form.non_field_errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted">Full Name</label>
+                                <input type="text" class="form-control bg-light" value="{{ request.user.get_full_name|default:request.user.email }}" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted">Email</label>
+                                <input type="text" class="form-control bg-light" value="{{ request.user.email }}" disabled>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-muted">Your Employer</label>
+                            {{ form.employer }}
+                            {% if form.employer.errors %}
+                                <div class="text-danger small mt-1">{{ form.employer.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted">Date of Birth (Age 18–70)</label>
+                                {{ form.date_of_birth }}
+                                {% if form.date_of_birth.errors %}
+                                    <div class="text-danger small mt-1">{{ form.date_of_birth.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted">NIN (11 Digits)</label>
+                                {{ form.nin }}
+                                {% if form.nin.errors %}
+                                    <div class="text-danger small mt-1">{{ form.nin.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted">Gender</label>
+                                {{ form.gender }}
+                                {% if form.gender.errors %}
+                                    <div class="text-danger small mt-1">{{ form.gender.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted">Phone Number</label>
+                                <input type="text" name="phone_number" class="form-control" placeholder="+234 800 000 0000" value="{{ request.user.phone_number }}">
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-semibold text-muted">Residential Address (Optional)</label>
+                            {{ form.address }}
+                            {% if form.address.errors %}
+                                <div class="text-danger small mt-1">{{ form.address.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-green w-100 py-2 fw-semibold">
+                                Complete Profile &amp; Generate PIN
+                            </button>
+                        </div>
+                    </form>
+
+                {% else %}
+                    <!-- Already Onboarded: View Profile & Update Contact Info -->
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                        <div>
+                            <h4 class="fw-bold mb-0">My Profile</h4>
+                            <span class="small text-muted">PIN: <strong class="text-dark">{{ member.rsa_pin }}</strong></span>
+                        </div>
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">Back</a>
+                    </div>
+
+                    <!-- Verified Member Details -->
+                    <div class="row g-2 mb-4 bg-light p-3 rounded small">
+                        <div class="col-6">
+                            <span class="text-muted d-block">Full Name</span>
+                            <strong class="text-dark">{{ member.full_name }}</strong>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted d-block">Employer</span>
+                            <strong class="text-dark">{{ member.employer.company_name|default:"Not linked" }}</strong>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted d-block">NIN</span>
+                            <code class="text-dark">{{ member.nin }}</code>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted d-block">Age / Birthday</span>
+                            <span class="text-dark">{{ member.calculate_age }} yrs ({{ member.date_of_birth|date:"d M Y" }})</span>
+                        </div>
+                    </div>
+
+                    <!-- Editable Form (Phone & Address) -->
+                    <h6 class="fw-bold mb-3">Update Contact Information</h6>
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-muted">Email (Login)</label>
+                            <input type="text" class="form-control" value="{{ member.email }}" disabled>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-muted">Phone Number</label>
+                            {{ form.phone_number }}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-semibold text-muted">Residential Address</label>
+                            {{ form.address }}
+                        </div>
+
+                        <button type="submit" class="btn btn-green w-100 py-2">
+                            Save Changes
+                        </button>
+                    </form>
+                {% endif %}
+
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

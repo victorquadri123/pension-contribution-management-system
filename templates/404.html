@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 Not Found</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #ffffff;
+            color: #1f2937;
+            padding: 40px 60px;
+            margin: 0;
+        }
+        h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 12px;
+        }
+        p {
+            font-size: 16px;
+            color: #4b5563;
+            line-height: 1.5;
+            margin: 0 0 16px 0;
+        }
+        hr {
+            border: 0;
+            border-top: 1px solid #e5e7eb;
+            margin: 30px 0 20px 0;
+        }
+        .footer-note {
+            font-size: 13px;
+            color: #9ca3af;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 8px;
+            color: #15803d;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Error: Not Found</h1>
+    <p>The requested URL {{ request.path }} was not found on this server.</p>
+    <div>
+        <a href="/" class="back-link">&larr; Return to Home</a>
+    </div>
+    <hr>
+    <div class="footer-note">NLPC PFA Web Server</div>
+</body>
+</html>

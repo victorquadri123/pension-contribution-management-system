@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Operations Portal | NLPC Pension{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold mb-1">Operations Portal</h4>
+            <p class="text-muted small mb-0">System automation &amp; account management</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'swagger-ui' %}" target="_blank" class="btn btn-outline-secondary btn-sm">API Docs</a>
+        </div>
+    </div>
+
+    <!-- 4 Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="text-muted small fw-semibold mb-1">TOTAL FUND</div>
+                <h4 class="fw-bold text-success mb-0">₦{{ fum|intcomma }}</h4>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="text-muted small fw-semibold mb-1">MEMBERS</div>
+                <h4 class="fw-bold mb-0">{{ members.count }}</h4>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="text-muted small fw-semibold mb-1">EMPLOYERS</div>
+                <h4 class="fw-bold mb-0">{{ employers.count }}</h4>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="text-muted small fw-semibold mb-1">PENDING</div>
+                <h4 class="fw-bold mb-0 {% if pending_count > 0 %}text-warning{% endif %}">{{ pending_count }}</h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- Automation Actions -->
+    <div class="card p-3 mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <h6 class="fw-bold mb-0">Background Tasks</h6>
+                <span class="text-muted small">Run batch operations on-demand</span>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'trigger_validation_job' %}" class="btn btn-green btn-sm">
+                    <i class="bi bi-play-circle me-1"></i> Validate Pending
+                </a>
+                <a href="{% url 'trigger_interest_job' %}" class="btn btn-outline-green btn-sm">
+                    <i class="bi bi-percent me-1"></i> Apply Interest
+                </a>
+                <a href="{% url 'trigger_retry_job' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Retry Failed
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Members Table -->
+    <div class="card mb-4">
+        <div class="p-3 border-bottom">
+            <h6 class="fw-bold mb-0">Members</h6>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 small">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-3">Name</th>
+                        <th>PIN</th>
+                        <th>Age</th>
+                        <th>Employer</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in members %}
+                        <tr class="{% if m.is_deleted %}table-light text-muted{% endif %}">
+                            <td class="ps-3 fw-semibold">{{ m.full_name }}</td>
+                            <td><code>{{ m.rsa_pin|default:"-" }}</code></td>
+                            <td>{{ m.calculate_age|default:"-" }}</td>
+                            <td>{{ m.employer.company_name|default:"-" }}</td>
+                            <td>
+                                {% if m.is_deleted %}
+                                    <span class="badge bg-danger-subtle text-danger">Deleted</span>
+                                {% else %}
+                                    <span class="badge badge-status badge-ok">Active</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'toggle_soft_delete_member' m.id %}" class="btn btn-sm {% if m.is_deleted %}btn-outline-success{% else %}btn-outline-danger{% endif %} py-0 px-2">
+                                    {% if m.is_deleted %}Restore{% else %}Delete{% endif %}
+                                </a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-3 text-muted">No members yet.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Employers Table -->
+    <div class="card mb-4">
+        <div class="p-3 border-bottom">
+            <h6 class="fw-bold mb-0">Employers</h6>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 small">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-3">Company Name</th>
+                        <th>RC Number</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in employers %}
+                        <tr>
+                            <td class="ps-3 fw-semibold">{{ e.company_name }}</td>
+                            <td><code>{{ e.registration_number }}</code></td>
+                            <td>{{ e.email }}</td>
+                            <td>
+                                {% if e.is_active and e.status == 'ACTIVE' %}
+                                    <span class="badge badge-status badge-ok">Active</span>
+                                {% else %}
+                                    <span class="badge badge-status badge-fail">Inactive</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-3 text-muted">No employers registered.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Recent Logs -->
+    <div class="card">
+        <div class="p-3 border-bottom">
+            <h6 class="fw-bold mb-0">Task Logs</h6>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 small">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-3">Task</th>
+                        <th>Status</th>
+                        <th>Processed</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for j in job_logs %}
+                        <tr>
+                            <td class="ps-3 fw-semibold">{{ j.job_name }}</td>
+                            <td>
+                                {% if j.status == 'SUCCESS' %}
+                                    <span class="badge badge-status badge-ok">Success</span>
+                                {% else %}
+                                    <span class="badge badge-status badge-fail">Failed</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ j.items_processed }}</td>
+                            <td>{{ j.started_at|date:"d M Y, H:i" }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-3 text-muted">No task logs yet.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
