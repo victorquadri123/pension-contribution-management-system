@@ -16,21 +16,25 @@ class Command(BaseCommand):
         self.stdout.write("Seeding demo data for NLPC PFA EPS+ System...")
 
         # 1. Superuser / Admin
-        admin_email = "admin@nlpcpfa.com"
-        admin, created = CustomUser.objects.get_or_create(
-            email=admin_email,
-            defaults={
-                'first_name': 'NLPC',
-                'last_name': 'Administrator',
-                'role': CustomUser.Role.ADMIN,
-                'is_staff': True,
-                'is_superuser': True,
-            }
-        )
-        if created:
-            admin.set_password("Admin@123456")
-            admin.save()
-            self.stdout.write(self.style.SUCCESS(f"Created Admin: {admin_email} / Admin@123456"))
+        for admin_email, admin_fname, admin_pwd in [
+            ("victorayomide319@gmail.com", "Victor", "Password@123"),
+            ("admin@nlpcpfa.com", "NLPC", "Admin@123456"),
+        ]:
+            admin_user, created = CustomUser.objects.get_or_create(
+                email=admin_email,
+                defaults={
+                    'first_name': admin_fname,
+                    'last_name': 'Administrator',
+                    'role': CustomUser.Role.ADMIN,
+                    'is_staff': True,
+                    'is_superuser': True,
+                }
+            )
+            if created:
+                admin_user.set_password(admin_pwd)
+                admin_user.save()
+                self.stdout.write(self.style.SUCCESS(f"Created Admin: {admin_email} / {admin_pwd}"))
+
 
         # 2. Employers
         employers_data = [
@@ -93,8 +97,21 @@ class Command(BaseCommand):
                 'employer': employer_objs[2],
                 'months_history': 65, # > 60 months (vested)
                 'salary_contrib': Decimal('90000.00'),
+            },
+            {
+                'email': 'moneystand123@gmail.com',
+                'first_name': 'Money',
+                'last_name': 'Stand',
+                'phone': '+2348099887766',
+                'dob': date(1990, 8, 15),
+                'gender': Member.Gender.MALE,
+                'nin': '11223344556',
+                'employer': employer_objs[0],
+                'months_history': 6,
+                'salary_contrib': Decimal('50000.00'),
             }
         ]
+
 
         for m_data in members_seed:
             user, created = CustomUser.objects.get_or_create(
