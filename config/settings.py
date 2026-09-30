@@ -123,11 +123,8 @@ REST_FRAMEWORK = {
 
 # Swagger / OpenAPI Documentation Settings
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'EPS+ Pension Contribution Management API',
-    'DESCRIPTION': (
-        'Comprehensive REST API for NLPC PFA: Member Onboarding, Employer Verification, '
-        'Monthly & Voluntary Contributions Processing, Benefit Eligibility, and Background Jobs.'
-    ),
+    'TITLE': 'EPS+ Pension Contribution API',
+    'DESCRIPTION': 'REST API for members, employers, contributions, benefit eligibility, and background jobs.',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': True,
