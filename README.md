@@ -42,9 +42,7 @@ The `seed_demo_data` command creates sample employers (Dangote, Zenith Bank, MTN
 | **Admin** | `victorayomide319@gmail.com` | `moneySTAND123@` | Full access to Operations Portal & background jobs |
 | **Contributor** | `moneystand123@gmail.com` | `moneySTAND123@` | Primary contributor account |
 | **Admin (Backup)** | `admin@nlpcpfa.com` | `moneySTAND123@` | Standard PFA admin officer |
-| **Contributor (Active)** | `olumide.adebayo@gmail.com` | `moneySTAND123@` | Active contributor, 24 months history |
-| **Contributor (Retirement)** | `babajide.sanusi@outlook.com` | `moneySTAND123@` | Age 54, 65 months history (Vested / Qualified) |
-| **Contributor (Younger)** | `chioma.okonkwo@yahoo.com` | `moneySTAND123@` | 12 months history |
+
 
 
 

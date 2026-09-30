@@ -61,44 +61,8 @@ class Command(BaseCommand):
             employer_objs.append(emp)
         self.stdout.write(self.style.SUCCESS(f"Created {len(employer_objs)} Employers."))
 
-        # 3. Demo Members
+        # 3. Contributor Member
         members_seed = [
-            {
-                'email': 'olumide.adebayo@gmail.com',
-                'first_name': 'Olumide',
-                'last_name': 'Adebayo',
-                'phone': '+2348021112233',
-                'dob': date(1988, 5, 14), # Age ~37 (within 18-70)
-                'gender': Member.Gender.MALE,
-                'nin': '10293847561',
-                'employer': employer_objs[0],
-                'months_history': 24, # 2 years history
-                'salary_contrib': Decimal('45000.00'),
-            },
-            {
-                'email': 'chioma.okonkwo@yahoo.com',
-                'first_name': 'Chioma',
-                'last_name': 'Okonkwo',
-                'phone': '+2348034445566',
-                'dob': date(1995, 10, 22), # Age ~30 (within 18-70)
-                'gender': Member.Gender.FEMALE,
-                'nin': '98765432101',
-                'employer': employer_objs[1],
-                'months_history': 12,
-                'salary_contrib': Decimal('65000.00'),
-            },
-            {
-                'email': 'babajide.sanusi@outlook.com',
-                'first_name': 'Babajide',
-                'last_name': 'Sanusi',
-                'phone': '+2348057778899',
-                'dob': date(1972, 3, 10), # Age ~53 (eligible for retirement!)
-                'gender': Member.Gender.MALE,
-                'nin': '55443322110',
-                'employer': employer_objs[2],
-                'months_history': 65, # > 60 months (vested)
-                'salary_contrib': Decimal('90000.00'),
-            },
             {
                 'email': 'moneystand123@gmail.com',
                 'first_name': 'Money',
