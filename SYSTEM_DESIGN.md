@@ -188,26 +188,3 @@ sequenceDiagram
     Svc->>DB: Save JobExecutionLog (counts & status)
 ```
 
----
-
-## 4. Interview Follow-Up Questions
-
-### 1. Architecture Decisions
-- **Approach:** Modular Django apps (`members`, `employers`, `contributions`, `benefits`, `jobs`) with a dedicated `services.py` layer. This keeps business logic out of the views so it's clean and easy to test.
-- **Why not microservices:** For an assessment of this size, a modular monolith is much simpler to run, test, and deploy without the overhead of network calls and distributed databases.
-- **Key pattern:** Service Layer pattern for calculations, and Soft-Deletes via `BaseModel` for audit compliance.
-
-### 2. Technical Choices
-- **Django & DRF:** Gives us built-in authentication, ORM with migrations, and rapid API development with Swagger out of the box.
-- **Database Unique Constraint:** Added `UniqueConstraint(fields=['member', 'contribution_year', 'contribution_month'], condition=Q(contribution_type='MONTHLY'))` so the database itself guarantees no duplicate monthly deposits can happen.
-- **Background Jobs:** Created management commands (`python manage.py run_jobs`) and web action triggers that log execution runs to `JobExecutionLog`.
-
-### 3. Scalability Considerations
-- **Query Optimization:** Used `select_related('user', 'employer')` to prevent N+1 queries.
-- **Caching:** Added in-memory caching to `get_member_totals()` to speed up repeated balance queries, with cache invalidation when new payments arrive.
-- **Next steps for production:** Move from SQLite to PostgreSQL, and use Celery + Redis for asynchronous worker queues as user count grows.
-
-### 4. Security Implementation
-- **Authentication & Roles:** Django's PBKDF2 password hashing. Staff users access the operations portal; members can only view their own records.
-- **Validation:** Strict server-side checks for age (18–70), positive amounts, 11-digit NINs, and non-future payment dates.
-- **CSRF & Injection:** Django CSRF middleware on forms and parameterized ORM queries to prevent SQL injection.
