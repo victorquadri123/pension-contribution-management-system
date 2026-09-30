@@ -49,6 +49,11 @@ The `seed_demo_data` command creates sample employers (Dangote, Zenith Bank, MTN
 
 ---
 
+## System Design & Architecture
+For the complete solution architecture diagram, entity relationship diagram (ERD), and process sequence flows, see [`SYSTEM_DESIGN.md`](./SYSTEM_DESIGN.md).
+
+---
+
 ## Core Engineering Decisions
 
 ### 1. Database-Enforced Contribution Rules
